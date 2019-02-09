@@ -1,1 +1,30 @@
-
+node{
+    stage("Checkout SCM"){
+        
+        checkout([$class: 'GitSCM', branches: [[name: '*/master']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'github', url: 'https://github.com/mahadevops12/Java-webapp.git']]])
+    }
+    stage("Build"){
+        mvnHome= tool 'maven3'
+        sh "${mvnHome}/bin/mvn clean install"
+        
+    }
+    stage("Test"){
+        sh "mvn test"
+    }
+    
+    stage("Sonar Analysis"){
+        
+        withSonarQubeEnv ('mySonar'){
+            sh 'mvn sonar:sonar'
+        }
+    }
+    
+     stage("Quality Gate"){
+     timeout(time: 1, unit: 'MINUTES') {
+      def qg = waitForQualityGate()
+       if (qg.status != 'OK') {
+           error "Pipeline aborted due to quality gate failure: ${qg.status}"
+            }
+          }
+        }   
+}
